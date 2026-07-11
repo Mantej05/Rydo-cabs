@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Rydo - Chandigarh Intercity Cab Service{% endblock %}</title>
+    {% load static %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="{% url 'home' %}" class="logo">
+            <span class="logo-num">Rydo</span>
+        </a>
+        <button class="nav-toggle" id="navToggle">&#9776;</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="{% url 'home' %}">Home</a></li>
+            <li><a href="{% url 'routes' %}">Routes &amp; Fares</a></li>
+            <li><a href="{% url 'book_cab' %}" class="nav-book-btn">Book Now</a></li>
+            <li><a href="{% url 'track_cab' %}">Track Cab</a></li>
+            <li><a href="{% url 'contact' %}">Contact</a></li>
+        </ul>
+    </div>
+</nav>
+<main>
+{% if messages %}
+<div class="messages-bar">
+{% for msg in messages %}
+<div class="msg msg-{{ msg.tags }}">{{ msg }}</div>
+{% endfor %}
+</div>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-col">
+            <div class="footer-logo"><span class="logo-num">Rydo</span></div>
+            <p>Chandigarh most trusted intercity cab service. Safe, punctual, comfortable.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="{% url 'book_cab' %}">Book a Cab</a></li>
+                <li><a href="{% url 'track_cab' %}">Track My Cab</a></li>
+                <li><a href="{% url 'routes' %}">Routes &amp; Fares</a></li>
+                <li><a href="{% url 'contact' %}">Contact Us</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Our Routes</h4>
+            <ul>
+                <li>Chandigarh to Delhi</li>
+                <li>Chandigarh to Amritsar</li>
+                <li>Chandigarh to Shimla</li>
+                <li>Chandigarh to Manali</li>
+                <li>Chandigarh to Jammu</li>
+                <li>Chandigarh to Srinagar</li>
+                <li>Chandigarh to Jaipur</li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Contact</h4>
+            <p>+91 9780351121</p>
+            <p>mantejhanda873@gmail.com</p>
+            <p>Sector 17, Chandigarh</p>
+        </div>
+    </div>
+    <div class="footer-bottom">2024 Rydo. All rights reserved.</div>
+</footer>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

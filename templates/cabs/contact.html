@@ -1,0 +1,60 @@
+{% extends 'cabs/base.html' %}
+{% block title %}Contact Us - Rydo{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Contact <span>Us</span></h1>
+    <p>We are available 24x7. Reach us by phone, email or the form below.</p>
+  </div>
+</section>
+<section class="section">
+<div class="container">
+  <div class="contact-layout">
+    <div class="contact-info-col">
+      <div class="contact-box">
+        <div class="cb-icon">&#128222;</div>
+        <h3>Phone</h3>
+        <a href="tel:+9198765Rydo0">+91 9780351121</a>
+        <p>Available 24x7</p>
+      </div>
+      <div class="contact-box">
+        <div class="cb-icon">&#128140;</div>
+        <h3>WhatsApp</h3>
+        <a href="https://wa.me/9198765Rydo0" target="_blank">Chat on WhatsApp</a>
+      </div>
+      <div class="contact-box">
+        <div class="cb-icon">&#9993;</div>
+        <h3>Email</h3>
+        <a href="mailto:hello@Rydo.in">hello@Rydo.in</a>
+      </div>
+      <div class="contact-box">
+        <div class="cb-icon">&#128205;</div>
+        <h3>Office</h3>
+        <p>SCO 125, Sector 17<br>Chandigarh - 160017</p>
+      </div>
+    </div>
+    <div class="contact-form-col">
+      <h2>Send Us a Message</h2>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name *</label>{{ form.name }}
+          </div>
+          <div class="form-group">
+            <label>Phone</label>{{ form.phone }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email *</label>{{ form.email }}
+        </div>
+        <div class="form-group">
+          <label>Message *</label>{{ form.message }}
+        </div>
+        <button type="submit" class="btn-primary btn-full">Send Message</button>
+      </form>
+    </div>
+  </div>
+</div>
+</section>
+{% endblock %}

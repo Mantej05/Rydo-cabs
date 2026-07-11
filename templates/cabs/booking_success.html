@@ -1,0 +1,50 @@
+{% extends 'cabs/base.html' %}
+{% block title %}Booking Confirmed - Rydo{% endblock %}
+{% block content %}
+<section class="section" style="min-height:80vh;display:flex;align-items:center;">
+<div class="container">
+  <div class="success-card">
+    <div class="success-icon">&#10003;</div>
+    <h1>Booking Confirmed!</h1>
+    <p>Thank you, <strong>{{ booking.customer_name }}</strong>! Your cab has been booked successfully.</p>
+
+    <div class="booking-details-grid">
+      <div class="bd-item">
+        <span class="bd-label">Booking ID</span>
+        <span class="bd-value booking-id-big">{{ booking.booking_id }}</span>
+      </div>
+      <div class="bd-item">
+        <span class="bd-label">Route</span>
+        <span class="bd-value">{{ booking.pickup_city }} &rarr; {{ booking.drop_city }}</span>
+      </div>
+      <div class="bd-item">
+        <span class="bd-label">Date &amp; Time</span>
+        <span class="bd-value">{{ booking.pickup_date }} at {{ booking.pickup_time }}</span>
+      </div>
+      <div class="bd-item">
+        <span class="bd-label">Cab Type</span>
+        <span class="bd-value">{{ booking.get_cab_type_display }}</span>
+      </div>
+      <div class="bd-item">
+        <span class="bd-label">Trip Type</span>
+        <span class="bd-value">{{ booking.get_trip_type_display }}</span>
+      </div>
+      <div class="bd-item">
+        <span class="bd-label">Estimated Fare</span>
+        <span class="bd-value fare-big">&#8377;{{ booking.estimated_fare }}</span>
+      </div>
+    </div>
+
+    <div class="success-note">
+      <strong>Save your Booking ID:</strong> {{ booking.booking_id }}<br>
+      You can use it to track your cab once a driver is assigned. Our team will call you on <strong>{{ booking.customer_phone }}</strong> to confirm.
+    </div>
+
+    <div class="success-actions">
+      <a href="{% url 'track_cab' %}" class="btn-primary">Track My Cab</a>
+      <a href="{% url 'home' %}" class="btn-outline">Back to Home</a>
+    </div>
+  </div>
+</div>
+</section>
+{% endblock %}

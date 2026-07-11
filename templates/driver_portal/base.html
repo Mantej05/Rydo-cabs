@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Rydo Portal{% endblock %}</title>
+  {% load static %}
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/portal.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="portal-body">
+
+{% if user.is_authenticated %}
+<div class="portal-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <span class="logo-num">Rydo</span><span class="logo-cabs">CABS</span>
+      <div class="sb-role">{% if is_admin %}Admin Portal{% else %}Driver Portal{% endif %}</div>
+    </div>
+    <nav class="sb-nav">
+      <a href="{% url 'portal_dashboard' %}" class="sb-link {% if request.resolver_match.url_name == 'portal_dashboard' %}active{% endif %}">
+        <span class="sb-icon">&#9956;</span> Dashboard
+      </a>
+      <a href="{% url 'portal_bookings' %}" class="sb-link {% if 'booking' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="sb-icon">&#128203;</span> Bookings
+        <span class="sb-badge" id="pendingBadge" style="display:none">0</span>
+      </a>
+      {% if is_admin %}
+      <a href="{% url 'portal_drivers' %}" class="sb-link {% if request.resolver_match.url_name == 'portal_drivers' %}active{% endif %}">
+        <span class="sb-icon">&#128100;</span> Drivers
+      </a>
+      <a href="{% url 'portal_revenue' %}" class="sb-link {% if request.resolver_match.url_name == 'portal_revenue' %}active{% endif %}">
+        <span class="sb-icon">&#128176;</span> Revenue
+      </a>
+      {% endif %}
+    </nav>
+    <div class="sb-user">
+      <div class="sb-user-info">
+        <div class="sb-avatar">{{ user.username|slice:":1"|upper }}</div>
+        <div>
+          <div class="sb-username">{{ user.username }}</div>
+          <div class="sb-userrole">{% if is_admin %}Administrator{% else %}Driver{% endif %}</div>
+        </div>
+      </div>
+      <a href="{% url 'portal_logout' %}" class="sb-logout">Logout</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="portal-topbar">
+      <button class="sb-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+      <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="topbar-right">
+        <div class="alert-bell" id="alertBell" onclick="toggleAlertPanel()">
+          &#128276;
+          <span class="bell-count" id="bellCount" style="display:none">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE ALERT PANEL -->
+    <div class="alert-panel" id="alertPanel" style="display:none">
+      <div class="ap-header">
+        <strong>&#128276; New Ride Requests</strong>
+        <button onclick="toggleAlertPanel()">&#10005;</button>
+      </div>
+      <div id="alertList"><p style="padding:1rem;color:#888">No pending bookings.</p></div>
+    </div>
+
+    {% if messages %}
+    <div class="portal-messages">
+      {% for msg in messages %}
+      <div class="pmsg pmsg-{{ msg.tags }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="portal-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script>
+// Poll for pending bookings every 10 seconds
+let lastCount = 0;
+let notifSound = null;
+
+function toggleAlertPanel() {
+  const p = document.getElementById('alertPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function fetchPending() {
+  fetch('{% url "portal_pending_api" %}')
+    .then(r => r.json())
+    .then(data => {
+      const count = data.count;
+      const badge = document.getElementById('pendingBadge');
+      const bell  = document.getElementById('bellCount');
+
+      if (count > 0) {
+        badge.textContent = count; badge.style.display = 'inline-block';
+        bell.textContent  = count; bell.style.display  = 'inline-block';
+        document.getElementById('alertBell').classList.add('ringing');
+        // Play sound only when count increases
+        if (count > lastCount) {
+          playBeep();
+          showBrowserNotif(data.pending[0]);
+        }
+      } else {
+        badge.style.display = 'none'; bell.style.display = 'none';
+        document.getElementById('alertBell').classList.remove('ringing');
+      }
+      lastCount = count;
+
+      // Render alert panel
+      const list = document.getElementById('alertList');
+      if (data.pending.length === 0) {
+        list.innerHTML = '<p style="padding:1rem;color:#888">No pending bookings.</p>';
+      } else {
+        list.innerHTML = data.pending.map(b => `
+          <div class="alert-item">
+            <div class="ai-head">
+              <span class="ai-id">${b.booking_id}</span>
+              <span class="ai-ago">${b.ago}</span>
+            </div>
+            <div class="ai-route">${b.pickup_city} &rarr; ${b.drop_city}</div>
+            <div class="ai-meta">${b.customer_name} &bull; ${b.customer_phone} &bull; ${b.cab_type} &bull; ${b.passengers} pax</div>
+            <div class="ai-fare">&#8377;${b.fare} &bull; ${b.pickup_date} ${b.pickup_time}</div>
+            <a href="/portal/bookings/accept/${b.booking_id}/" class="ai-accept-btn">Accept Ride</a>
+          </div>
+        `).join('');
+      }
+    }).catch(() => {});
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.start(); osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+function showBrowserNotif(b) {
+  if (!b) return;
+  if (Notification.permission === 'granted') {
+    new Notification('New Ride - Rydo', {
+      body: `${b.pickup_city} to ${b.drop_city} | ${b.customer_name} | ₹${b.fare}`,
+      icon: '/static/img/cab-icon.png'
+    });
+  }
+}
+
+// Request notification permission on load
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+{% if user.is_authenticated %}
+fetchPending();
+setInterval(fetchPending, 10000);
+{% endif %}
+
+// Auto-dismiss messages
+document.querySelectorAll('.pmsg').forEach(m => {
+  setTimeout(() => { m.style.opacity='0'; setTimeout(()=>m.remove(),400); }, 4000);
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% extends 'cabs/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Chandigarh's #1 Intercity Cab</div>
+    <h1 class="hero-title">Rydo<span>CABS</span></h1>
+    <p class="hero-subtitle">Delhi &bull; Shimla &bull; Amritsar &bull; Manali &bull; Jammu &bull; Srinagar &bull; Jaipur</p>
+
+    <!-- QUICK BOOKING WIDGET -->
+    <div class="quick-book-card">
+      <h3>Book Your Ride</h3>
+      <form action="{% url 'book_cab' %}" method="GET" class="quick-form">
+        <div class="qf-row">
+          <div class="qf-field">
+            <label>From</label>
+            <select name="from" required>
+              <option value="">Select City</option>
+              {% for val, label in form.pickup_city.field.choices %}
+              {% if val %}<option value="{{ val }}">{{ label }}</option>{% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="qf-swap" onclick="swapCities()">&#8646;</div>
+          <div class="qf-field">
+            <label>To</label>
+            <select name="to" required>
+              <option value="">Select City</option>
+              {% for val, label in form.drop_city.field.choices %}
+              {% if val %}<option value="{{ val }}">{{ label }}</option>{% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="qf-field">
+            <label>Date</label>
+            <input type="date" name="date" required>
+          </div>
+          <button type="submit" class="btn-primary">Search Cabs</button>
+        </div>
+      </form>
+      <div class="fare-preview" id="farePreview" style="display:none">
+        <span>Estimated Fare: </span><strong id="fareAmt">-</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY US -->
+<section class="section why-us">
+  <div class="container">
+    <h2 class="section-title">Why Choose <span>Rydo?</span></h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon">&#128664;</div>
+        <h3>Clean &amp; Comfortable</h3>
+        <p>Well-maintained Sedans, SUVs and Tempo Travellers sanitized before every trip.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">&#128205;</div>
+        <h3>Live GPS Tracking</h3>
+        <p>Track your cab in real-time on Google Maps. Share location with family.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">&#9200;</div>
+        <h3>24×7 Available</h3>
+        <p>Early morning flights? Late-night arrivals? We run around the clock.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">&#128176;</div>
+        <h3>Fixed Fares</h3>
+        <p>No surge pricing. Transparent fixed rates. What you see is what you pay.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">&#128110;</div>
+        <h3>Verified Drivers</h3>
+        <p>All drivers are police-verified with valid commercial driving licenses.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">&#128241;</div>
+        <h3>Instant Confirmation</h3>
+        <p>Book online and get your booking ID instantly. No waiting, no hassle.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUTES -->
+<section class="section routes-preview" style="background:#f8f9ff;">
+  <div class="container">
+    <h2 class="section-title">Popular <span>Routes</span></h2>
+    <div class="routes-grid">
+      {% for r in routes %}
+      <div class="route-card">
+        <div class="route-cities">
+          <span class="rc-city">{{ r.from }}</span>
+          <span class="rc-arrow">&#9992;</span>
+          <span class="rc-city">{{ r.to }}</span>
+        </div>
+        <div class="route-meta">
+          <span>{{ r.distance }}</span>
+          <span>{{ r.time }}</span>
+        </div>
+        <a href="{% url 'book_cab' %}?from={{ r.from }}&to={{ r.to }}" class="btn-primary btn-sm">Book Now</a>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a href="{% url 'routes' %}" class="btn-outline">View All Fares</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA TRACK -->
+<section class="section cta-track">
+  <div class="container cta-inner">
+    <div>
+      <h2>Already Booked?</h2>
+      <p>Track your cab live on Google Maps with your Booking ID.</p>
+    </div>
+    <a href="{% url 'track_cab' %}" class="btn-primary btn-lg">Track My Cab &rarr;</a>
+  </div>
+</section>
+
+<!-- CAB TYPES -->
+<section class="section cab-types">
+  <div class="container">
+    <h2 class="section-title">Our <span>Fleet</span></h2>
+    <div class="fleet-grid">
+      <div class="fleet-card">
+        <div class="fleet-icon">&#128100;</div>
+        <h3>Sedan</h3>
+        <p class="fleet-seats">Up to 4 passengers</p>
+        <ul>
+          <li>AC</li><li>Spacious Boot</li><li>Swift &amp; Fuel-Efficient</li>
+        </ul>
+        <p class="fleet-models">Swift Dzire / Honda Amaze / Xcent</p>
+      </div>
+      <div class="fleet-card fleet-featured">
+        <div class="fleet-badge">Most Popular</div>
+        <div class="fleet-icon">&#128663;</div>
+        <h3>SUV</h3>
+        <p class="fleet-seats">Up to 6 passengers</p>
+        <ul>
+          <li>AC</li><li>Large Luggage Space</li><li>Ideal for Families</li>
+        </ul>
+        <p class="fleet-models">Innova Crysta / Ertiga / Scorpio</p>
+      </div>
+      <div class="fleet-card">
+        <div class="fleet-icon">&#128652;</div>
+        <h3>Tempo Traveller</h3>
+        <p class="fleet-seats">Up to 12 passengers</p>
+        <ul>
+          <li>AC</li><li>Push-back seats</li><li>Groups &amp; Pilgrimages</li>
+        </ul>
+        <p class="fleet-models">Force Traveller / Winger</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function swapCities() {
+  var f = document.querySelector('select[name="from"]');
+  var t = document.querySelector('select[name="to"]');
+  var tmp = f.value; f.value = t.value; t.value = tmp;
+}
+// Set today as min date
+document.querySelector('input[type="date"]').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

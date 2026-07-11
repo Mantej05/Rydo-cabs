@@ -1,0 +1,127 @@
+{% extends 'driver_portal/base.html' %}
+{% block title %}Bookings – Rydo Portal{% endblock %}
+{% block page_title %}All Bookings{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="filter-bar">
+  <form method="GET" class="filter-form">
+    <input type="text"  name="search"   placeholder="Search by ID / Name / Phone" value="{{ search }}">
+    <select name="status">
+      <option value="">All Status</option>
+      {% for val,label in status_choices %}
+      <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date" value="{{ date_filter }}">
+    <button type="submit" class="btn-filter">Filter</button>
+    <a href="{% url 'portal_bookings' %}" class="btn-clear">Clear</a>
+  </form>
+</div>
+
+<div class="dash-card">
+  <div class="dash-card-header">
+    <h3>Bookings <span class="badge-count">{{ bookings|length }}</span></h3>
+  </div>
+  <div class="table-wrap">
+    <table class="portal-table">
+      <thead><tr>
+        <th>Booking ID</th><th>Customer</th><th>Route</th>
+        <th>Date & Time</th><th>Cab / Pax</th><th>Fare</th>
+        <th>Driver</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td><strong>{{ b.booking_id }}</strong><br><small>{{ b.created_at|date:"d M Y" }}</small></td>
+          <td>{{ b.customer_name }}<br><small>{{ b.customer_phone }}</small></td>
+          <td><strong>{{ b.pickup_city }}</strong><br>&darr;<br><strong>{{ b.drop_city }}</strong></td>
+          <td>{{ b.pickup_date }}<br><small>{{ b.pickup_time }}</small></td>
+          <td>{{ b.get_cab_type_display }}<br><small>{{ b.passengers }} pax</small></td>
+          <td>
+            <strong>&#8377;{{ b.estimated_fare }}</strong>
+            {% if is_admin %}
+            <br><small class="text-green">Comm: &#8377;{{ b.admin_commission }}</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if b.driver %}
+              <span class="driver-chip">{{ b.driver.driver_id }}<br>{{ b.driver.name }}</span>
+            {% else %}
+              <span class="unassigned">Unassigned</span>
+            {% endif %}
+          </td>
+          <td><span class="status-dot status-{{ b.status }}">{{ b.get_status_display }}</span></td>
+          <td class="actions-cell">
+            {% if b.status == 'pending' %}
+              {% if driver and not is_admin %}
+                <a href="{% url 'portal_accept' b.booking_id %}" class="btn-accept">Accept</a>
+              {% endif %}
+              {% if is_admin %}
+                <!-- Admin assign driver -->
+                <button class="btn-sm-action" onclick="openAssign('{{ b.booking_id }}')">Assign Driver</button>
+              {% endif %}
+            {% endif %}
+            {% if b.status == 'confirmed' and b.driver == driver or is_admin %}
+              {% if b.status == 'confirmed' %}
+              <form method="POST" action="{% url 'portal_update_status' b.booking_id %}">
+                {% csrf_token %}<input type="hidden" name="status" value="on_trip">
+                <button type="submit" class="btn-sm-action">Start Trip</button>
+              </form>
+              {% endif %}
+            {% endif %}
+            {% if b.status == 'on_trip' %}
+              {% if b.driver == driver or is_admin %}
+              <form method="POST" action="{% url 'portal_update_status' b.booking_id %}">
+                {% csrf_token %}<input type="hidden" name="status" value="completed">
+                <button type="submit" class="btn-sm-action green">Complete</button>
+              </form>
+              {% endif %}
+            {% endif %}
+            {% if is_admin and b.status != 'completed' and b.status != 'cancelled' %}
+              <form method="POST" action="{% url 'portal_update_status' b.booking_id %}">
+                {% csrf_token %}<input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="btn-sm-action red" onclick="return confirm('Cancel this booking?')">Cancel</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty-state">No bookings found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ASSIGN DRIVER MODAL (admin) -->
+{% if is_admin %}
+<div class="modal-overlay" id="assignModal" style="display:none" onclick="this.style.display='none'">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3>Assign Driver</h3>
+    <form method="POST" id="assignForm" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Select Available Driver</label>
+        <select name="driver_id" required>
+          <option value="">-- Choose Driver --</option>
+          {% for d in available_drivers %}
+          <option value="{{ d.id }}">{{ d.driver_id }} | {{ d.name }} | {{ d.vehicle_number }} ({{ d.get_vehicle_type_display }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1rem">
+        <button type="submit" class="btn-accept">Assign</button>
+        <button type="button" class="btn-sm-action" onclick="document.getElementById('assignModal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function openAssign(bookingId) {
+  document.getElementById('assignForm').action = '/portal/bookings/assign/' + bookingId + '/';
+  document.getElementById('assignModal').style.display = 'flex';
+}
+</script>
+{% endif %}
+{% endblock %}

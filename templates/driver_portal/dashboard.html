@@ -1,0 +1,306 @@
+{% extends 'driver_portal/base.html' %}
+{% block title %}Dashboard – 1313Cabs Portal{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- STAT CARDS -->
+<div class="stats-grid">
+  <div class="stat-card yellow">
+    <div class="stat-icon">&#128203;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ total_bookings }}</div>
+      <div class="stat-label">Total Bookings</div>
+    </div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">&#9203;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ pending_count }}</div>
+      <div class="stat-label">Pending Rides</div>
+    </div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">&#10003;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ completed_count }}</div>
+      <div class="stat-label">Completed Rides</div>
+    </div>
+  </div>
+  {% if is_admin %}
+  <div class="stat-card blue">
+    <div class="stat-icon">&#8377;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ today_revenue|floatformat:0 }}</div>
+      <div class="stat-label">Today's Revenue</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon">&#127775;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ today_commission|floatformat:0 }}</div>
+      <div class="stat-label">Today's Commission</div>
+    </div>
+  </div>
+  <div class="stat-card dark">
+    <div class="stat-icon">&#128176;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ total_revenue|floatformat:0 }}</div>
+      <div class="stat-label">All-time Revenue</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="stat-card blue">
+    <div class="stat-icon">&#128664;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ driver.total_rides }}</div>
+      <div class="stat-label">My Completed Rides</div>
+    </div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">&#8377;</div>
+    <div class="stat-body">
+      <div class="stat-val">{{ driver.total_earnings|floatformat:0 }}</div>
+      <div class="stat-label">My Total Earnings</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 7-DAY REVENUE CHART (admin only) -->
+{% if is_admin %}
+<div class="dashboard-row">
+  <div class="dash-card full-width">
+    <div class="dash-card-header">
+      <h3>Revenue – Last 7 Days</h3>
+      <a href="{% url 'portal_revenue' %}" class="view-all-link">Full Report &rarr;</a>
+    </div>
+    <canvas id="revenueChart" height="80"></canvas>
+  </div>
+</div>
+{% endif %}
+
+<!-- PENDING RIDES ALERT TABLE -->
+<div class="dashboard-row">
+  <div class="dash-card full-width">
+    <div class="dash-card-header">
+      <h3>&#128276; Pending Ride Requests <span class="badge-count">{{ pending_count }}</span></h3>
+      <a href="{% url 'portal_bookings' %}?status=pending" class="view-all-link">View All &rarr;</a>
+    </div>
+    {% if pending_bookings %}
+    <div class="table-wrap">
+      <table class="portal-table">
+        <thead><tr>
+          <th>Booking ID</th><th>Customer</th><th>Route</th><th>Date & Time</th>
+          <th>Cab</th><th>Fare</th><th>Booked</th><th>Action</th>
+        </tr></thead>
+        <tbody>
+          {% for b in pending_bookings %}
+          <tr class="pending-row">
+            <td><strong>{{ b.booking_id }}</strong></td>
+            <td>{{ b.customer_name }}<br><small>{{ b.customer_phone }}</small></td>
+            <td>{{ b.pickup_city }} &rarr; {{ b.drop_city }}</td>
+            <td>{{ b.pickup_date }}<br><small>{{ b.pickup_time }}</small></td>
+            <td>{{ b.get_cab_type_display }}<br><small>{{ b.passengers }} pax</small></td>
+            <td><strong>&#8377;{{ b.estimated_fare }}</strong></td>
+            <td><small>{{ b.created_at|timesince }} ago</small></td>
+            <td>
+              {% if driver and not is_admin %}
+              <a href="{% url 'portal_accept' b.booking_id %}" class="btn-accept">Accept</a>
+              {% elif is_admin %}
+              <a href="{% url 'portal_bookings' %}" class="btn-view">Manage</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">&#10003; No pending bookings right now.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- MY RECENT RIDES (driver view) -->
+<!-- LIVE LOCATION SHARING (Driver only) -->
+{% if driver and not is_admin %}
+<div class="dashboard-row">
+  <div class="dash-card full-width">
+    <div class="dash-card-header">
+      <h3>&#128205; Share My Live Location</h3>
+    </div>
+    <div class="location-share-section">
+      <div class="ls-status" id="lsStatus">
+        <div class="ls-dot inactive" id="lsDot"></div>
+        <span id="lsStatusText">Location sharing is OFF</span>
+      </div>
+      <p class="ls-note">Turn ON when you start heading to pick up a customer. Your location will be visible to the customer on their tracking page.</p>
+      <button class="ls-btn" id="lsBtn" onclick="toggleLocationSharing()">
+        &#128205; Start Sharing Location
+      </button>
+      <div class="ls-coords" id="lsCoords"></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if my_bookings %}
+<div class="dashboard-row">
+  <div class="dash-card full-width">
+    <div class="dash-card-header">
+      <h3>My Recent Rides</h3>
+      <a href="{% url 'portal_bookings' %}" class="view-all-link">View All &rarr;</a>
+    </div>
+    <div class="table-wrap">
+      <table class="portal-table">
+        <thead><tr>
+          <th>Booking ID</th><th>Customer</th><th>Route</th><th>Date</th><th>Fare</th><th>Status</th><th>Action</th>
+        </tr></thead>
+        <tbody>
+          {% for b in my_bookings %}
+          <tr>
+            <td><strong>{{ b.booking_id }}</strong></td>
+            <td>{{ b.customer_name }}<br><small>{{ b.customer_phone }}</small></td>
+            <td>{{ b.pickup_city }} &rarr; {{ b.drop_city }}</td>
+            <td>{{ b.pickup_date }}</td>
+            <td>&#8377;{{ b.estimated_fare }}</td>
+            <td><span class="status-dot status-{{ b.status }}">{{ b.get_status_display }}</span></td>
+            <td>
+              {% if b.status == 'confirmed' %}
+              <form method="POST" action="{% url 'portal_update_status' b.booking_id %}" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="status" value="on_trip">
+                <button type="submit" class="btn-sm-action">Start Trip</button>
+              </form>
+              {% elif b.status == 'on_trip' %}
+              <form method="POST" action="{% url 'portal_update_status' b.booking_id %}" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="status" value="completed">
+                <button type="submit" class="btn-sm-action green">Complete</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if is_admin %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: {{ chart_labels|safe }},
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: {{ chart_revenue|safe }},
+      backgroundColor: '#FFD600',
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+  }
+});
+</script>
+{% endif %}
+
+{% if driver and not is_admin %}
+<script>
+var locationInterval = null;
+var isSharing = false;
+var driverId = {{ driver.id }};
+
+function toggleLocationSharing() {
+  if (!isSharing) {
+    startSharing();
+  } else {
+    stopSharing();
+  }
+}
+
+function startSharing() {
+  if (!navigator.geolocation) {
+    alert('GPS not supported on this device.');
+    return;
+  }
+
+  // Ask for GPS permission
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    isSharing = true;
+    updateUI(true);
+    sendLocation(pos);
+    // Send location every 10 seconds
+    locationInterval = setInterval(function() {
+      navigator.geolocation.getCurrentPosition(sendLocation, onGpsError, {
+        enableHighAccuracy: true,
+        timeout: 8000,
+      });
+    }, 10000);
+  }, onGpsError, { enableHighAccuracy: true });
+}
+
+function stopSharing() {
+  isSharing = false;
+  if (locationInterval) {
+    clearInterval(locationInterval);
+    locationInterval = null;
+  }
+  updateUI(false);
+  document.getElementById('lsCoords').textContent = '';
+}
+
+function sendLocation(position) {
+  var lat = position.coords.latitude;
+  var lng = position.coords.longitude;
+
+  fetch('/api/driver/location/update/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driver_id: driverId, lat: lat, lng: lng })
+  }).then(r => r.json()).then(data => {
+    if (data.status === 'ok') {
+      document.getElementById('lsCoords').textContent =
+        'Last sent: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' at ' + new Date().toLocaleTimeString();
+    }
+  }).catch(() => {
+    document.getElementById('lsCoords').textContent = 'Failed to send location. Check internet.';
+  });
+}
+
+function onGpsError(err) {
+  document.getElementById('lsCoords').textContent = 'GPS Error: ' + err.message;
+}
+
+function updateUI(sharing) {
+  var btn  = document.getElementById('lsBtn');
+  var dot  = document.getElementById('lsDot');
+  var text = document.getElementById('lsStatusText');
+  if (sharing) {
+    btn.textContent  = '&#9209; Stop Sharing Location';
+    btn.style.background = '#ef4444';
+    dot.className    = 'ls-dot active';
+    text.textContent = 'Location sharing is ON — Customer can see you';
+  } else {
+    btn.innerHTML    = '&#128205; Start Sharing Location';
+    btn.style.background = '';
+    dot.className    = 'ls-dot inactive';
+    text.textContent = 'Location sharing is OFF';
+  }
+}
+
+// Auto-stop sharing when page closes
+window.addEventListener('beforeunload', function() {
+  if (isSharing) stopSharing();
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'driver_portal/base.html' %}
+{% block title %}Revenue – Rydo Portal{% endblock %}
+{% block page_title %}Revenue & Profits{% endblock %}
+
+{% block content %}
+<!-- SUMMARY CARDS -->
+<h3 class="section-heading">Today</h3>
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-icon">&#128176;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ t_total|floatformat:0 }}</div><div class="stat-label">Total Revenue</div></div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-icon">&#127775;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ t_comm|floatformat:0 }}</div><div class="stat-label">Rydo Commission (15%)</div></div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon">&#128100;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ t_driver|floatformat:0 }}</div><div class="stat-label">Driver Payouts</div></div>
+  </div>
+  <div class="stat-card dark">
+    <div class="stat-icon">&#128203;</div>
+    <div class="stat-body"><div class="stat-val">{{ t_cnt }}</div><div class="stat-label">Rides Completed</div></div>
+  </div>
+</div>
+
+<h3 class="section-heading" style="margin-top:2rem">This Month</h3>
+<div class="stats-grid">
+  <div class="stat-card green"><div class="stat-icon">&#128176;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ m_total|floatformat:0 }}</div><div class="stat-label">Revenue</div></div></div>
+  <div class="stat-card yellow"><div class="stat-icon">&#127775;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ m_comm|floatformat:0 }}</div><div class="stat-label">Commission</div></div></div>
+  <div class="stat-card dark"><div class="stat-icon">&#128203;</div>
+    <div class="stat-body"><div class="stat-val">{{ m_cnt }}</div><div class="stat-label">Rides</div></div></div>
+</div>
+
+<h3 class="section-heading" style="margin-top:2rem">All Time</h3>
+<div class="stats-grid">
+  <div class="stat-card green"><div class="stat-icon">&#128176;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ a_total|floatformat:0 }}</div><div class="stat-label">Total Revenue</div></div></div>
+  <div class="stat-card yellow"><div class="stat-icon">&#127775;</div>
+    <div class="stat-body"><div class="stat-val">&#8377;{{ a_comm|floatformat:0 }}</div><div class="stat-label">Total Commission</div></div></div>
+  <div class="stat-card dark"><div class="stat-icon">&#128203;</div>
+    <div class="stat-body"><div class="stat-val">{{ a_cnt }}</div><div class="stat-label">Total Rides</div></div></div>
+</div>
+
+<!-- 30-DAY CHART -->
+<div class="dash-card" style="margin-top:2rem">
+  <div class="dash-card-header"><h3>Daily Revenue – Last 30 Days</h3></div>
+  <canvas id="revenueChart" height="60"></canvas>
+</div>
+
+<!-- PER-DRIVER BREAKDOWN -->
+<div class="dash-card" style="margin-top:2rem">
+  <div class="dash-card-header"><h3>Per-Driver Revenue Breakdown</h3></div>
+  <div class="table-wrap">
+    <table class="portal-table">
+      <thead><tr>
+        <th>Driver ID</th><th>Name</th><th>Vehicle</th><th>Rides Done</th><th>Gross Earned (Driver Share 85%)</th>
+      </tr></thead>
+      <tbody>
+        {% for d in driver_rev %}
+        <tr>
+          <td><strong>{{ d.driver_id }}</strong></td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.vehicle_number }}</td>
+          <td>{{ d.rides }}</td>
+          <td><strong>&#8377;{{ d.earned|floatformat:0 }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-state">No completed rides yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const daily = {{ daily|safe }};
+new Chart(document.getElementById('revenueChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: daily.map(d => d.date),
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: daily.map(d => d.revenue),
+      borderColor: '#FFD600', backgroundColor: 'rgba(255,214,0,0.1)',
+      tension: 0.4, fill: true, pointRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+  }
+});
+</script>
+{% endblock %}

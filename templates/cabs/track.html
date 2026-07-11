@@ -1,0 +1,213 @@
+{% extends 'cabs/base.html' %}
+{% block title %}Track My Cab - 1313Cabs{% endblock %}
+{% block extra_head %}
+{% if booking and tracking_allowed %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDln1fi0cGBlbTY1K1lRQYX-Vd4Qbn9hT0&callback=initMap" async defer></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Track <span>Your Cab</span></h1>
+    <p>Enter your Booking ID and phone number to see live cab location.</p>
+  </div>
+</section>
+
+<section class="section">
+<div class="container">
+
+  <!-- SEARCH FORM -->
+  <div class="track-form-wrap">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label>Booking ID</label>
+          {{ form.booking_id }}
+          {% if form.booking_id.errors %}<span class="err">{{ form.booking_id.errors }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label>Registered Phone Number</label>
+          {{ form.customer_phone }}
+          {% if form.customer_phone.errors %}<span class="err">{{ form.customer_phone.errors }}</span>{% endif %}
+        </div>
+        <button type="submit" class="btn-primary">Track Now</button>
+      </div>
+    </form>
+    {% if error %}
+    <div class="track-error">{{ error }}</div>
+    {% endif %}
+  </div>
+
+  {% if booking %}
+  <!-- BOOKING STATUS CARD -->
+  <div class="track-result">
+    <div class="track-header">
+      <div>
+        <div class="track-booking-id">{{ booking.booking_id }}</div>
+        <div class="track-route">{{ booking.pickup_city }} &rarr; {{ booking.drop_city }}</div>
+      </div>
+      <div class="status-badge status-{{ booking.status }}">{{ booking.get_status_display }}</div>
+    </div>
+
+    <div class="track-info-grid">
+      <div class="ti-item"><span class="ti-label">Passenger</span><span class="ti-val">{{ booking.customer_name }}</span></div>
+      <div class="ti-item"><span class="ti-label">Date</span><span class="ti-val">{{ booking.pickup_date }}</span></div>
+      <div class="ti-item"><span class="ti-label">Time</span><span class="ti-val">{{ booking.pickup_time }}</span></div>
+      <div class="ti-item"><span class="ti-label">Cab</span><span class="ti-val">{{ booking.get_cab_type_display }}</span></div>
+      <div class="ti-item"><span class="ti-label">Fare</span><span class="ti-val">&#8377;{{ booking.estimated_fare }}</span></div>
+    </div>
+
+    <!-- DRIVER INFO -->
+    {% if booking.driver %}
+    <div class="driver-card">
+      <div class="driver-avatar">&#128100;</div>
+      <div class="driver-info">
+        <div class="driver-name">{{ booking.driver.name }}</div>
+        <div class="driver-vehicle">{{ booking.driver.vehicle_model }} &bull; {{ booking.driver.vehicle_number }}</div>
+        <a href="tel:{{ booking.driver.phone }}" class="driver-call">&#128222; Call Driver: {{ booking.driver.phone }}</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="track-notice">&#9203; Driver will be assigned soon. You will receive a call on your registered number.</div>
+    {% endif %}
+
+    <!-- TRACKING SECTION -->
+    {% if booking.status == 'completed' %}
+      <div class="track-notice success">&#10003; Trip completed. Thank you for riding with 1313Cabs!</div>
+
+    {% elif booking.status == 'cancelled' %}
+      <div class="track-notice error">&#10007; This booking has been cancelled.</div>
+
+    {% elif booking.status == 'pending' %}
+      <div class="track-notice">&#9203; Your booking is pending. We are assigning a driver for you.</div>
+
+    {% elif not booking.driver %}
+      <div class="track-notice">&#9203; Driver not yet assigned. Live tracking will be available once a driver accepts your ride.</div>
+
+    {% elif tracking_allowed %}
+      <!-- LIVE MAP -->
+      <div class="map-section">
+        <div class="map-header">
+          <h3>&#128205; Live Driver Location</h3>
+          <div class="live-badge">&#9679; LIVE</div>
+        </div>
+        <div id="liveMap"></div>
+        <div class="map-status-bar">
+          <span id="mapRefreshNote">Connecting to driver location...</span>
+          <span id="lastUpdated"></span>
+        </div>
+      </div>
+
+    {% elif minutes_until_tracking %}
+      <!-- NOT YET TIME -->
+      <div class="track-notice info">
+        <div class="tracking-countdown">
+          <div class="tc-icon">&#128205;</div>
+          <div>
+            <strong>Live tracking will start in {{ minutes_until_tracking }} minutes</strong>
+            <p>Driver location sharing activates 10 minutes before your pickup time. Please check back at <strong>{{ booking.pickup_time }}</strong> minus 10 minutes.</p>
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+      <div class="track-notice info">&#128205; Live tracking will be available 10 minutes before your pickup time.</div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+</div>
+</section>
+
+{% if booking and tracking_allowed %}
+<script>
+var map, driverMarker, pickupMarker;
+var bookingId = "{{ booking.booking_id }}";
+var pickupCity = "{{ booking.pickup_city }}";
+var dropCity   = "{{ booking.drop_city }}";
+
+// City coordinates for initial map center
+var cityCoords = {
+  'Chandigarh': {lat: 30.7333, lng: 76.7794},
+  'Delhi':      {lat: 28.6139, lng: 77.2090},
+  'Amritsar':   {lat: 31.6340, lng: 74.8723},
+  'Shimla':     {lat: 31.1048, lng: 77.1734},
+  'Jammu':      {lat: 32.7266, lng: 74.8570},
+  'Srinagar':   {lat: 34.0837, lng: 74.7973},
+  'Jaipur':     {lat: 26.9124, lng: 75.7873},
+  'Manali':     {lat: 32.2396, lng: 77.1887},
+};
+
+function initMap() {
+  var center = cityCoords[pickupCity] || {lat: 30.7333, lng: 76.7794};
+
+  map = new google.maps.Map(document.getElementById('liveMap'), {
+    zoom: 13,
+    center: center,
+    mapTypeControl: false,
+    fullscreenControl: true,
+    streetViewControl: false,
+  });
+
+  // Driver marker (yellow cab icon)
+  driverMarker = new google.maps.Marker({
+    map: map,
+    title: 'Your Driver',
+    icon: {
+      url: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+      scaledSize: new google.maps.Size(48, 48),
+    },
+    animation: google.maps.Animation.DROP,
+  });
+
+  // Pickup location marker
+  pickupMarker = new google.maps.Marker({
+    map: map,
+    position: center,
+    title: 'Your Pickup: ' + pickupCity,
+    icon: {
+      url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+      scaledSize: new google.maps.Size(40, 40),
+    },
+  });
+
+  var infoWindow = new google.maps.InfoWindow({
+    content: '<strong>Your Pickup Location</strong><br>' + pickupCity
+  });
+  pickupMarker.addListener('click', function() {
+    infoWindow.open(map, pickupMarker);
+  });
+
+  fetchLocation();
+  setInterval(fetchLocation, 10000);
+}
+
+function fetchLocation() {
+  fetch('/api/cab/location/' + bookingId + '/')
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        var pos = {lat: data.lat, lng: data.lng};
+        driverMarker.setPosition(pos);
+        map.panTo(pos);
+
+        document.getElementById('mapRefreshNote').innerHTML =
+          '&#128100; <strong>' + data.driver_name + '</strong> &bull; ' + data.vehicle_number + ' &bull; ' + data.vehicle_model;
+        document.getElementById('lastUpdated').textContent =
+          'Updated: ' + new Date().toLocaleTimeString();
+
+      } else {
+        document.getElementById('mapRefreshNote').textContent =
+          'Waiting for driver to share location...';
+      }
+    })
+    .catch(() => {
+      document.getElementById('mapRefreshNote').textContent = 'Connection error. Retrying...';
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

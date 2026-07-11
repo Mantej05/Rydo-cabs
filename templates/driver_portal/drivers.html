@@ -1,0 +1,47 @@
+{% extends 'driver_portal/base.html' %}
+{% block title %}Drivers – Rydo Portal{% endblock %}
+{% block page_title %}All Drivers{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <div class="dash-card-header">
+    <h3>Driver Database <span class="badge-count">{{ drivers|length }}</span></h3>
+    <p class="header-note">Add new drivers via <a href="/admin/cabs/driver/add/" target="_blank">Django Admin &rarr;</a></p>
+  </div>
+  <div class="table-wrap">
+    <table class="portal-table">
+      <thead><tr>
+        <th>Driver ID</th><th>Name</th><th>Phone</th><th>Vehicle</th>
+        <th>Type</th><th>License</th><th>Completed Rides</th><th>Total Earned</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        {% for d in drivers %}
+        <tr>
+          <td><strong>{{ d.driver_id }}</strong></td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.phone }}</td>
+          <td>{{ d.vehicle_model }}<br><small>{{ d.vehicle_number }}</small></td>
+          <td>{{ d.get_vehicle_type_display }}</td>
+          <td><small>{{ d.license_number }}</small></td>
+          <td><strong>{{ d.total_completed|default:0 }}</strong></td>
+          <td><strong>&#8377;{{ d.total_earned|default:0|floatformat:0 }}</strong></td>
+          <td>
+            {% if d.is_active %}
+              {% if d.is_available %}
+              <span class="status-dot status-confirmed">Available</span>
+              {% else %}
+              <span class="status-dot status-on_trip">On Trip</span>
+              {% endif %}
+            {% else %}
+            <span class="status-dot status-cancelled">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty-state">No drivers added yet. <a href="/admin/cabs/driver/add/">Add via Admin</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

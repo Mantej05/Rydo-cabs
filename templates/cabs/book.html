@@ -1,0 +1,191 @@
+{% extends 'cabs/base.html' %}
+{% block title %}Book a Cab - Rydo{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Book Your <span>Cab</span></h1>
+    <p>Fill in the details below and get an instant booking confirmation.</p>
+  </div>
+</section>
+
+<section class="section">
+<div class="container">
+<div class="booking-layout">
+
+  <!-- FORM -->
+  <div class="booking-form-wrap">
+    <form method="POST" action="{% url 'book_cab' %}" id="bookingForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="form-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="form-section-title">Personal Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          {{ form.customer_name }}
+          {% if form.customer_name.errors %}<span class="err">{{ form.customer_name.errors }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          {{ form.customer_phone }}
+          {% if form.customer_phone.errors %}<span class="err">{{ form.customer_phone.errors }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email (optional)</label>
+        {{ form.customer_email }}
+      </div>
+
+      <div class="form-section-title" style="margin-top:1.5rem;">Trip Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>From City *</label>
+          {{ form.pickup_city }}
+        </div>
+        <div class="form-group">
+          <label>To City *</label>
+          {{ form.drop_city }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Trip Type *</label>
+          {{ form.trip_type }}
+        </div>
+        <div class="form-group">
+          <label>Number of Passengers *</label>
+          {{ form.passengers }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pickup Date *</label>
+          {{ form.pickup_date }}
+        </div>
+        <div class="form-group">
+          <label>Pickup Time *</label>
+          {{ form.pickup_time }}
+        </div>
+      </div>
+
+      <div class="form-group" id="returnDateGroup" style="display:none;">
+        <label>Return Date *</label>
+        {{ form.return_date }}
+      </div>
+
+      <div class="form-section-title" style="margin-top:1.5rem;">Choose Cab Type</div>
+      <div class="cab-type-selector" id="cabTypeSelector">
+        <label class="cab-type-opt" data-type="sedan">
+          <input type="radio" name="cab_type" value="sedan" {% if form.cab_type.value == 'sedan' or not form.cab_type.value %}checked{% endif %}>
+          <div class="cto-inner">
+            <span class="cto-icon">&#128100;</span>
+            <span class="cto-name">Sedan</span>
+            <span class="cto-seats">4 Seats</span>
+            <span class="cto-fare fare-sedan">&#8377;<span class="fare-val">-</span></span>
+          </div>
+        </label>
+        <label class="cab-type-opt" data-type="suv">
+          <input type="radio" name="cab_type" value="suv" {% if form.cab_type.value == 'suv' %}checked{% endif %}>
+          <div class="cto-inner">
+            <span class="cto-icon">&#128663;</span>
+            <span class="cto-name">SUV</span>
+            <span class="cto-seats">6 Seats</span>
+            <span class="cto-fare fare-suv">&#8377;<span class="fare-val">-</span></span>
+          </div>
+        </label>
+        <label class="cab-type-opt" data-type="tempo">
+          <input type="radio" name="cab_type" value="tempo" {% if form.cab_type.value == 'tempo' %}checked{% endif %}>
+          <div class="cto-inner">
+            <span class="cto-icon">&#128652;</span>
+            <span class="cto-name">Tempo</span>
+            <span class="cto-seats">12 Seats</span>
+            <span class="cto-fare fare-tempo">&#8377;<span class="fare-val">-</span></span>
+          </div>
+        </label>
+      </div>
+
+      <div class="fare-summary" id="fareSummary" style="display:none;">
+        <div class="fs-label">Estimated Fare</div>
+        <div class="fs-amount" id="selectedFare">-</div>
+        <div class="fs-note">Toll / parking extra. No surge pricing.</div>
+      </div>
+
+      <button type="submit" class="btn-primary btn-full btn-lg">Confirm Booking</button>
+    </form>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="booking-sidebar">
+    <div class="sidebar-card">
+      <h3>Need Help?</h3>
+      <p>Call us to book over the phone</p>
+      <a href="tel:+9198765Rydo0" class="phone-link">+91 9780351121</a>
+    </div>
+    <div class="sidebar-card">
+      <h3>What's Included</h3>
+      <ul class="incl-list">
+        <li>&#10003; Driver allowance</li>
+        <li>&#10003; Fuel charges</li>
+        <li>&#10003; Night charges (if any)</li>
+        <li>&#10003; GST</li>
+      </ul>
+      <p class="incl-note">Toll &amp; parking charges extra.</p>
+    </div>
+  </aside>
+</div>
+</div>
+</section>
+
+<script>
+const pickup = document.querySelector('[name="pickup_city"]');
+const drop = document.querySelector('[name="drop_city"]');
+const tripType = document.querySelector('[name="trip_type"]');
+const returnGroup = document.getElementById('returnDateGroup');
+
+function updateFares() {
+  const p = pickup.value, d = drop.value;
+  if (!p || !d || p === d) return;
+  fetch(`/api/fare/?pickup=${p}&drop=${d}&cab_type=sedan`)
+    .then(r => r.json()).then(data => {
+      const fares = {sedan: data.fare, suv: Math.round(data.fare*1.37), tempo: Math.round(data.fare*1.97)};
+      ['sedan','suv','tempo'].forEach(t => {
+        const el = document.querySelector(`.fare-${t} .fare-val`);
+        if(el) el.textContent = fares[t] ? fares[t].toLocaleString('en-IN') : '-';
+      });
+      document.getElementById('fareSummary').style.display = 'flex';
+      updateSelectedFare(fares);
+    });
+}
+
+function updateSelectedFare(fares) {
+  const checked = document.querySelector('[name="cab_type"]:checked');
+  if(checked && fares) {
+    let f = fares[checked.value] || 0;
+    if(tripType.value === 'round_trip') f = Math.round(f * 1.9);
+    document.getElementById('selectedFare').textContent = '₹' + f.toLocaleString('en-IN');
+  }
+}
+
+pickup.addEventListener('change', updateFares);
+drop.addEventListener('change', updateFares);
+document.querySelectorAll('[name="cab_type"]').forEach(r => r.addEventListener('change', () => updateFares()));
+tripType.addEventListener('change', () => {
+  returnGroup.style.display = tripType.value === 'round_trip' ? 'block' : 'none';
+  updateFares();
+});
+
+{% if request.GET.from %}
+pickup.value = "{{ request.GET.from }}";
+{% endif %}
+{% if request.GET.to %}
+drop.value = "{{ request.GET.to }}";
+{% endif %}
+if(pickup.value && drop.value) updateFares();
+</script>
+{% endblock %}

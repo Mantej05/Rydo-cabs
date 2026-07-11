@@ -1,0 +1,52 @@
+{% extends 'cabs/base.html' %}
+{% block title %}Routes & Fares - Rydo{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Routes <span>&amp; Fares</span></h1>
+    <p>Transparent fixed fares. No hidden charges. No surge pricing.</p>
+  </div>
+</section>
+<section class="section">
+<div class="container">
+  <div class="routes-table-wrap">
+    <table class="routes-table">
+      <thead>
+        <tr>
+          <th>Route</th>
+          <th>Distance</th>
+          <th>Time</th>
+          <th>Sedan (4 seats)</th>
+          <th>SUV (6 seats)</th>
+          <th>Tempo (12 seats)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in route_list %}
+        <tr>
+          <td><strong>{{ r.from }}</strong> &harr; <strong>{{ r.to }}</strong><br><small>{{ r.highlights }}</small></td>
+          <td>{{ r.distance }}</td>
+          <td>{{ r.time }}</td>
+          <td class="fare-cell">&#8377;{{ r.sedan }}</td>
+          <td class="fare-cell">&#8377;{{ r.suv }}</td>
+          <td class="fare-cell">&#8377;{{ r.tempo }}</td>
+          <td><a href="{% url 'book_cab' %}?from={{ r.from }}&to={{ r.to }}" class="btn-primary btn-sm">Book</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="fare-note-card">
+    <h3>Fare Notes</h3>
+    <ul>
+      <li>All fares are one-way. Round trip = one-way fare x 1.9</li>
+      <li>Toll and parking charges are extra and paid by passenger.</li>
+      <li>Night charges (11 PM - 6 AM) may apply: +10%</li>
+      <li>Waiting charges after 30 minutes: ₹100/hour</li>
+      <li>Fares are inclusive of GST and driver allowance.</li>
+    </ul>
+  </div>
+</div>
+</section>
+{% endblock %}
