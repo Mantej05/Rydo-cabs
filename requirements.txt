@@ -1,2 +1,8 @@
-Django>=4.2,<5.0
-Pillow>=10.0
+asgiref==3.9.1
+Django==4.2.30
+gunicorn==26.0.0
+packaging==26.2
+pillow==12.2.0
+sqlparse==0.5.3
+tzdata==2025.2
+uv==0.8.15
