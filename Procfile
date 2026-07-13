@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn project_urls:application --bind 0.0.0.0:$PORT --env DJANGO_SETTINGS_MODULE=settings
+web: python manage.py migrate && gunicorn wsgi:application --bind 0.0.0.0:$PORT
