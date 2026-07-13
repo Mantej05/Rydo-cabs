@@ -3,8 +3,6 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-print("=== LOADING PROJECT URLS ===")
-
 urlpatterns = [
     path('admin/',   admin.site.urls),
     path('',         include('cabs.urls')),
