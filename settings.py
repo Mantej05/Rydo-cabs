@@ -8,6 +8,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-key-only')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://Mantej05.pythonanywhere.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,3 +60,5 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/portal/login/'
+
+CSRF_TRUSTED_ORIGINS = ['https://Mantej05.pythonanywhere.com']
